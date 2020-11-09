@@ -11,6 +11,11 @@
 
 //#define DEBUG_AUDIN
 //#define DEBUG_AIU
+//#define DEBUG_FIFO
+//#define DEBUG_FIFO2
+
+#define AIU_FIFO_I2S_BLOCK		256
+#define AUDIN_FIFO_I2S_BLOCK		512
 
 struct clk;
 struct clk_bulk_data;
@@ -53,6 +58,7 @@ struct audio {
 	void __iomem *audin_regs;
 	struct regmap *aiu_map;
 	struct regmap *audin_map;
+	spinlock_t irq_lock;
 };
 
 struct audio_fifo {

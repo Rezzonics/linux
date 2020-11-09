@@ -29,10 +29,10 @@ static struct snd_pcm_hardware fifo_spdif_pcm = {
 		 SNDRV_PCM_INFO_MMAP_VALID |
 		 SNDRV_PCM_INFO_PAUSE),
 	.formats = AUDIN_FORMATS,
-	.rate_min = 5512,
+	.rate_min = 8000,
 	.rate_max = 192000,
-	.channels_min = 2,
-	.channels_max = 2,
+	.channels_min = 1,
+	.channels_max = 8,
 	.period_bytes_min = AUDIN_FIFO_SPDIF_BLOCK,
 	.period_bytes_max = AUDIN_FIFO_SPDIF_BLOCK * USHRT_MAX,
 	.periods_min = 2,

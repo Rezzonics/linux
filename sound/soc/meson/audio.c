@@ -21,9 +21,6 @@
 #include "aiu-fifo.h"
 #include "audin-fifo.h"
 
-#define AIU_FIFO_I2S_BLOCK		256
-#define AUDIN_FIFO_I2S_BLOCK		16384
-
 static struct snd_pcm_hardware aiu_fifo_i2s_pcm = {
 	.info = (SNDRV_PCM_INFO_INTERLEAVED |
 		 SNDRV_PCM_INFO_MMAP |
@@ -32,13 +29,14 @@ static struct snd_pcm_hardware aiu_fifo_i2s_pcm = {
 	.formats = AUDIO_FORMATS,
 	.rate_min = 8000,
 	.rate_max = 192000,
-	.channels_min = 2,
+	.channels_min = 1,
 	.channels_max = 8,
 	.period_bytes_min = AIU_FIFO_I2S_BLOCK,
-	.period_bytes_max = AIU_FIFO_I2S_BLOCK * 256,
+	.period_bytes_max = 64*AIU_FIFO_I2S_BLOCK,
 	.periods_min = 2,
-	.periods_max = 256,
+	.periods_max = 8,
 	.buffer_bytes_max = 1024 * 1024,
+	.fifo_size = 64,
 };
 
 static struct snd_pcm_hardware audin_fifo_i2s_pcm = {
@@ -50,13 +48,13 @@ static struct snd_pcm_hardware audin_fifo_i2s_pcm = {
 	.formats = AUDIO_FORMATS,
 	.rate_min = 8000,
 	.rate_max = 48000,
-	.channels_min = 2,
+	.channels_min = 1,
 	.channels_max = 8,
 	.period_bytes_min = AUDIN_FIFO_I2S_BLOCK,
-	.period_bytes_max = AUDIN_FIFO_I2S_BLOCK * 256,
+	.period_bytes_max = 32*AUDIN_FIFO_I2S_BLOCK,
 	.periods_min = 2,
-	.periods_max = 256,
-	.buffer_bytes_max = 8192 * 8192,
+	.periods_max = 8,
+	.buffer_bytes_max = 1024 * 1024,
 	.fifo_size = 0,
 };
 
@@ -87,6 +85,7 @@ snd_pcm_uframes_t audio_fifo_pointer(struct snd_soc_component *component,
 //		printk("audio_fifo_pointer: playback frames=%ld, addr=%x\n", frames, addr);
 		break;
 	case SNDRV_PCM_STREAM_CAPTURE:
+		spin_lock(&audio->irq_lock);
 		fifo = dai->capture_dma_data;
 		regmap_write(audio->audin_map, 
 			     fifo->mem_offset + AUDIN_FIFO_PTR_OFF,
@@ -96,21 +95,25 @@ snd_pcm_uframes_t audio_fifo_pointer(struct snd_soc_component *component,
 		    	    &addr);
 		if (runtime->format == SNDRV_PCM_FORMAT_S16_LE) {
 			buffer_size = addr - (unsigned int)runtime->dma_addr;
-			if (buffer_size == runtime->dma_bytes) 
-				buffer_size = runtime->dma_bytes - 8;
+			if (buffer_size == (unsigned int)runtime->dma_bytes)
+				buffer_size -= 8;
 			frames = bytes_to_frames(runtime, buffer_size);
-//			printk("16bits: frames=%ld, format=%d addr-runtime->dma_addr=%d\n",
-//				frames, runtime->format, addr - (unsigned int)runtime->dma_addr);
+#ifdef DEBUG_FIFO
+			printk("16bits: frames=%ld, addr=0x%x, dma_addr=0x%x\n",
+				frames, addr, (unsigned int)runtime->dma_addr);
+#endif
 		}
 		else {
 			buffer_size = addr - (unsigned int)runtime->dma_addr;
-			/* For a period size=48000, buffer_size can be 384 or 376 */
-			if (buffer_size <= 384) 
-				buffer_size = runtime->dma_bytes - buffer_size - 8;
+			if (buffer_size == (unsigned int)runtime->dma_bytes)
+				buffer_size -= 8;
 			frames = bytes_to_frames(runtime, buffer_size);
-//			printk("32bits: frames=%ld, format=%d addr-runtime->dma_addr=%d\n",
-//				frames, runtime->format, addr - (unsigned int)runtime->dma_addr);
+#ifdef DEBUG_FIFO
+			printk("32bits: frames=%ld, addr=0x%x, dma_addr=0x%x\n",
+				frames, addr, (unsigned int)runtime->dma_addr);
+#endif
 		}
+		spin_unlock(&audio->irq_lock);
 		break;
 	}
 	return frames;
@@ -326,10 +329,10 @@ static struct snd_soc_dai_driver audio_cpu_dai_drv[] = {
 		.name = "I2S FIFO ENCODE",
 		.playback = {
 			.stream_name	= "I2S FIFO Playback",
-			.channels_min	= 2,
+			.channels_min	= 1,
 			.channels_max	= 8,
 			.rates		= SNDRV_PCM_RATE_CONTINUOUS,
-			.rate_min	= 5512,
+			.rate_min	= 8000,
 			.rate_max	= 192000,
 			.formats	= AUDIO_FORMATS,
 		},
@@ -360,7 +363,7 @@ static struct snd_soc_dai_driver audio_cpu_dai_drv[] = {
 		.name = "I2S Encoder",
 		.playback = {
 			.stream_name = "I2S Encoder Playback",
-			.channels_min = 2,
+			.channels_min = 1,
 			.channels_max = 8,
 			.rates = SNDRV_PCM_RATE_8000_192000,
 			.formats = AUDIO_FORMATS,
@@ -390,10 +393,10 @@ static struct snd_soc_dai_driver audio_cpu_dai_drv[] = {
 		.name = "I2S FIFO DECODE",
 		.capture = {
 			.stream_name	= "I2S FIFO Capture",
-			.channels_min	= 2,
+			.channels_min	= 1,
 			.channels_max	= 8,
 			.rates		= SNDRV_PCM_RATE_CONTINUOUS,
-			.rate_min	= 5512,
+			.rate_min	= 8000,
 			.rate_max	= 192000,
 			.formats	= AUDIO_FORMATS,
 		},
@@ -424,7 +427,7 @@ static struct snd_soc_dai_driver audio_cpu_dai_drv[] = {
 		.name = "I2S Decoder",
 		.capture = {
 			.stream_name = "I2S Decoder Capture",
-			.channels_min = 2,
+			.channels_min = 1,
 			.channels_max = 8,
 			.rates = SNDRV_PCM_RATE_8000_192000,
 			.formats = AUDIO_FORMATS,

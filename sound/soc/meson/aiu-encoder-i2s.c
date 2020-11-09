@@ -84,6 +84,7 @@ static int aiu_encoder_i2s_setup_desc(struct snd_soc_component *component,
 	}
 
 	switch (params_channels(params)) {
+	case 1: 
 	case 2: /* Nothing to do */
 		break;
 	case 8:
@@ -308,7 +309,7 @@ static int aiu_encoder_i2s_set_sysclk(struct snd_soc_dai *dai, int clk_id,
 	return ret;
 }
 
-static const unsigned int hw_channels[] = {2, 8};
+static const unsigned int hw_channels[] = {1, 2, 8};
 static const struct snd_pcm_hw_constraint_list hw_channel_constraints = {
 	.list = hw_channels,
 	.count = ARRAY_SIZE(hw_channels),

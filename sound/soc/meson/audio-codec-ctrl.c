@@ -440,6 +440,149 @@ static int audin_chen_put_enum(struct snd_kcontrol *kcontrol,
 
 static SOC_ENUM_SINGLE_EXT_DECL(audin_chen_enum, audin_chen_texts);
 #endif
+#ifdef DEBUG_FIFO2
+extern unsigned int ff_shft;
+
+static const char * const audin_ff_texts[] = {
+	"8", "16", "32", "64", "128", "256", "384", "512", "768", "1024",
+};
+
+static const unsigned int audin_ff_values[] = {
+	8, 16, 32, 64, 128, 256, 384, 512, 768, 1024,
+};
+
+static int audin_ff_get_enum(struct snd_kcontrol *kcontrol,
+			         struct snd_ctl_elem_value *ucontrol)
+{
+//	struct snd_soc_component *component =
+//		snd_soc_kcontrol_component(kcontrol);
+	unsigned int val, mask;
+
+	mask = 0xffff;
+	val = ff_shft;
+	ucontrol->value.integer.value[0] = (val & mask) >> __ffs(mask);
+	return 0;
+}
+
+static int audin_ff_put_enum(struct snd_kcontrol *kcontrol,
+			          struct snd_ctl_elem_value *ucontrol)
+{
+//	struct snd_soc_component *component =
+//		snd_soc_kcontrol_component(kcontrol);
+//	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+	unsigned int mux, val, mask, old, new;
+	int changed;
+
+	mux = ucontrol->value.integer.value[0];
+	val = mux;
+	mask = 0xffff;
+	old = ff_shft;
+	new = (old & ~mask) | val;
+	changed = old != new;
+
+	if (!changed)
+		return 0;
+	ff_shft = val & mask;
+	return 0;
+}
+
+static SOC_VALUE_ENUM_SINGLE_DECL(audin_ff_enum, NULL, 0, 0, audin_ff_texts, audin_ff_values);
+
+extern unsigned int period_bytes;
+
+static const char * const audin_pb_texts[] = {
+	"0x300", "0x400", "0x800", "0x1000", "0x2000", "0x4000",
+};
+
+static const unsigned int audin_pb_values[] = {
+	0x300, 0x400, 0x800, 0x1000, 0x2000, 0x4000,
+};
+
+static int audin_pb_get_enum(struct snd_kcontrol *kcontrol,
+			         struct snd_ctl_elem_value *ucontrol)
+{
+//	struct snd_soc_component *component =
+//		snd_soc_kcontrol_component(kcontrol);
+	unsigned int val, mask;
+
+	mask = 0xffff;
+	val = period_bytes;
+	ucontrol->value.integer.value[0] = (val & mask) >> __ffs(mask);
+	return 0;
+}
+
+static int audin_pb_put_enum(struct snd_kcontrol *kcontrol,
+			          struct snd_ctl_elem_value *ucontrol)
+{
+//	struct snd_soc_component *component =
+//		snd_soc_kcontrol_component(kcontrol);
+//	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+	unsigned int mux, val, mask, old, new;
+	int changed;
+
+	mux = ucontrol->value.integer.value[0];
+	val = mux;
+	mask = 0xffff;
+	old = period_bytes;
+	new = (old & ~mask) | val;
+	changed = old != new;
+
+	if (!changed)
+		return 0;
+	period_bytes = val & mask;
+	return 0;
+}
+
+static SOC_VALUE_ENUM_SINGLE_DECL(audin_pb_enum, NULL, 0, 0, audin_pb_texts, audin_pb_values);
+
+extern unsigned int fifo_size;
+
+static const char * const audin_fs_texts[] = {
+	"8", "16", "32", "64", "128", "256", "384", "512", "768", "1024",
+};
+
+static const unsigned int audin_fs_values[] = {
+	8, 16, 32, 64, 128, 256, 384, 512, 768, 1024,
+};
+
+static int audin_fs_get_enum(struct snd_kcontrol *kcontrol,
+			         struct snd_ctl_elem_value *ucontrol)
+{
+//	struct snd_soc_component *component =
+//		snd_soc_kcontrol_component(kcontrol);
+	unsigned int val, mask;
+
+	mask = 0xffff;
+	val = fifo_size;
+	ucontrol->value.integer.value[0] = (val & mask) >> __ffs(mask);
+	return 0;
+}
+
+static int audin_fs_put_enum(struct snd_kcontrol *kcontrol,
+			          struct snd_ctl_elem_value *ucontrol)
+{
+//	struct snd_soc_component *component =
+//		snd_soc_kcontrol_component(kcontrol);
+//	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+	unsigned int mux, val, mask, old, new;
+	int changed;
+
+	mux = ucontrol->value.integer.value[0];
+	val = mux;
+	mask = 0xffff;
+	old = fifo_size;
+	new = (old & ~mask) | val;
+	changed = old != new;
+
+	if (!changed)
+		return 0;
+	fifo_size = val & mask;
+	return 0;
+}
+
+static SOC_VALUE_ENUM_SINGLE_DECL(audin_fs_enum, NULL, 0, 0, audin_fs_texts, audin_fs_values);
+#endif
+
 #ifdef DEBUG_AIU
 static int aiu_msb_inv_get_enum(struct snd_kcontrol *kcontrol,
 			         struct snd_ctl_elem_value *ucontrol)
@@ -940,6 +1083,14 @@ static const struct snd_kcontrol_new audio_codec_ctrl_controls[] = {
 		     audin_i2ssize_get_enum, audin_i2ssize_put_enum),
 	SOC_ENUM_EXT("ChEn", audin_chen_enum, 
 		     audin_chen_get_enum, audin_chen_put_enum),
+#endif
+#ifdef DEBUG_FIFO2
+	SOC_VALUE_ENUM_EXT("FFISR", audin_ff_enum,
+		     audin_ff_get_enum, audin_ff_put_enum),
+	SOC_VALUE_ENUM_EXT("PeriodBytes", audin_pb_enum,
+		     audin_pb_get_enum, audin_pb_put_enum),
+	SOC_VALUE_ENUM_EXT("FifoSize", audin_fs_enum,
+		     audin_fs_get_enum, audin_fs_put_enum),
 #endif
 #ifdef DEBUG_AIU
 	SOC_SINGLE_BOOL_EXT("MSB_Inv", 0, 
