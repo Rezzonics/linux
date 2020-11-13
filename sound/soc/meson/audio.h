@@ -13,8 +13,9 @@
 //#define DEBUG_AIU
 //#define DEBUG_FIFO
 //#define DEBUG_FIFO2
+//#define AIU_ENABLE
 
-#define AIU_FIFO_I2S_BLOCK		256
+#define AIU_FIFO_I2S_BLOCK		512
 #define AUDIN_FIFO_I2S_BLOCK		512
 
 struct clk;
